@@ -1,0 +1,63 @@
+#include <LiquidCrystal_I2C.h>
+#include <Wire.h>
+
+#define NUM_SENSORS 4
+
+// Definieer de GPIO-pinnen voor de ventielen
+int valvePins[NUM_SENSORS] = {27, 26, 25, 14}; // Pinnen voor ventielen
+
+LiquidCrystal_I2C lcd(0x27, 20, 4);
+
+int sensorPins[NUM_SENSORS] = {35, 34, 36, 39}; // GPIO-pinnen voor de sensoren
+
+void setup() {
+    Serial.begin(115200);
+
+    // Initialiseer het LCD-scherm
+    lcd.init();
+    lcd.backlight();
+    lcd.clear();
+
+    // Stel de sensorpinnen in als invoer
+    for (int i = 0; i < NUM_SENSORS; i++) {
+        pinMode(sensorPins[i], INPUT);
+    }
+
+    // Stel de ventielpinnen in als uitvoer en zet ze standaard uit (HIGH)
+    for (int i = 0; i < NUM_SENSORS; i++) {
+        pinMode(valvePins[i], OUTPUT);
+        digitalWrite(valvePins[i], HIGH);
+    }
+}
+
+void loop() {
+    // Lees de sensoren en werk het LCD-scherm bij
+    for (int i = 0; i < NUM_SENSORS; i++) {
+        int sensorValue = analogRead(sensorPins[i]); // Lees analoge waarde
+        float vochtpercentage = map(sensorValue, 800, 2200, 100, 40);
+        vochtpercentage = constrain(vochtpercentage, 0, 100);
+
+        lcd.setCursor(0, i);
+        lcd.print("Sensor ");
+        lcd.print(i + 1);
+        lcd.print(": ");
+        lcd.print(vochtpercentage);
+        lcd.print(" %   "); // Zorg ervoor dat oude waarden worden overschreven
+
+        // Debuggen via seriële monitor
+        Serial.print("Sensor ");
+        Serial.print(i + 1);
+        Serial.print(": ");
+        Serial.print(vochtpercentage);
+        Serial.println("%");
+
+        // Ventielbesturing
+        if (vochtpercentage < 40) {
+            digitalWrite(valvePins[i], LOW); // Zet het ventiel aan
+        } else {
+            digitalWrite(valvePins[i], HIGH); // Zet het ventiel uit
+        }
+    }
+
+    delay(1000);
+}
